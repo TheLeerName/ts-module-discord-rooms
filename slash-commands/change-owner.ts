@@ -7,7 +7,7 @@ import * as Discord from "discord.js";
 // TODO: make another slash-command which will be used by administrators and will change room owner even if administrator isnt current room owner
 export default () => {
 	const c = new SlashCommand()
-	.setVersion(2)
+	.setVersion(1)
 	.setCooldown(5000)
 	.setName("rooms-change-owner")
 	.setDescription(`Changes owner of room, where you right now (if you currently owner)`)

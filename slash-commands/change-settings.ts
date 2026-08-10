@@ -9,8 +9,7 @@ export const slashCommandChangeSettingsName = "rooms-change-settings";
 
 export default () => {
 	const c = new SlashCommand()
-	.setVersion(2)
-	.setCooldown(5000)
+	.setVersion(1)
 	.setName(slashCommandChangeSettingsName)
 	.setDescription(`Changes some settings for this server`)
 	.setDescriptionLocalization("ru", `Изменяет настройки для этого сервера`)

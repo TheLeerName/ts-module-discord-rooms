@@ -7,15 +7,8 @@ import SlashCommandChangeOwner from "./slash-commands/change-owner.js";
 
 import * as Discord from "discord.js";
 
-const discordGuildWhitelistModuleName = "discord-guild-whitelist";
-interface IDiscordGuildWhitelistModule extends IModule {
-	readonly data: BaseData & {
-		isWhitelisted: (moduleName: string, guild: Discord.Guild) => boolean;
-	};
-}
-
-export class DiscordGuildRoomsModule {
-	readonly name = "discord-guild-rooms" as const;
+export class DiscordRoomsModule {
+	readonly name = "discord-rooms" as const;
 	readonly data: ModuleData;
 	readonly log = Core.log.makeFunctions(this.name);
 
@@ -233,4 +226,4 @@ export class DiscordGuildRoomsModule {
 		return roomData;
 	}
 }
-export default new DiscordGuildRoomsModule();
+export default new DiscordRoomsModule();

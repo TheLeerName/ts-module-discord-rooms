@@ -6,8 +6,7 @@ import * as Discord from "discord.js";
 
 export default () => {
 	const c = new SlashCommand()
-	.setVersion(2)
-	.setCooldown(5000)
+	.setVersion(1)
 	.setName("rooms-create-category")
 	.setDescription(`Creates category for private rooms`)
 	.setDescriptionLocalization("ru", `Создаёт канал-категорию для приватных комнат`)

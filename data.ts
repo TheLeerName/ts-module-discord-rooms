@@ -69,7 +69,7 @@ export namespace Guild {
 	}
 }
 
-export default class ExampleModuleData extends BaseData {
+export default class ModuleData extends BaseData {
 	guilds: Map<string, Guild> = new Map();
 
 	async initialize() {
