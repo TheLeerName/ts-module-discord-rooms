@@ -1,5 +1,5 @@
 import Core, { type BaseData, type IModule } from "../../index.js";
-import DiscordModule from "../ts-module-discord/index.js";
+import DiscordModule from "../discord/index.js";
 import ModuleData, { Guild, type Room } from "./data.js";
 import SlashCommandCreateCategory from "./slash-commands/create-category.js";
 import SlashCommandChangeSettings, { slashCommandChangeSettingsName } from "./slash-commands/change-settings.js";
