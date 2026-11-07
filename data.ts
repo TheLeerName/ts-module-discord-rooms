@@ -58,7 +58,7 @@ export class Guild {
 	}
 }
 export namespace Guild {
-	export class Enabled extends Guild {
+	export interface Enabled extends Guild {
 		enabled: true;
 		guild: Discord.Guild;
 		guildID: undefined;
@@ -192,7 +192,7 @@ export default class ModuleData extends BaseData {
 					this.guilds.set(guildData.guild.id, guildData);
 				}
 			}
-			await this.saveAsync();
+			await this.save();
 		}, async() => {
 			const save: {guildID: string | null, categoryChannelID: string | null, createRoomChannelID: string | null, roomVoiceChannelNameTemplate: string, rooms: {voiceChannelID: string, ownerID: string, voiceMemberIDs: string[]}[]}[] = [];
 			for (const guildData of this.guilds.values()) {
@@ -205,7 +205,7 @@ export default class ModuleData extends BaseData {
 		}));
 
 		if (needsSave)
-			await this.saveAsync();
+			await this.save();
 		return this;
 	}
 
