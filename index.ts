@@ -98,7 +98,7 @@ export class DiscordRoomsModule {
 				roomData.voiceMembers = Array.from(roomData.voiceChannel.members.values()).sort();
 			}
 		}
-		await this.data.saveAsync();
+		await this.data.save();
 	}
 
 	protected onChannelUpdate(oldChannel: Discord.DMChannel | Discord.NonThreadGuildBasedChannel, newChannel: Discord.DMChannel | Discord.NonThreadGuildBasedChannel) {
@@ -149,7 +149,7 @@ export class DiscordRoomsModule {
 		}
 
 		if (needsSave)
-			await this.data.saveAsync();
+			await this.data.save();
 	}
 
 	protected async onVoiceStateUpdate(oldState: Discord.VoiceState, newState: Discord.VoiceState) {
@@ -162,7 +162,7 @@ export class DiscordRoomsModule {
 			const roomData = await this.makeRoomForMember(guildData, newState.member!);
 			await newState.setChannel(roomData.voiceChannel);
 			roomData.voiceMembers = newState.channel.members.map((v, k) => v).sort();
-			await this.data.saveAsync();
+			await this.data.save();
 			return;
 		}
 
@@ -171,7 +171,7 @@ export class DiscordRoomsModule {
 			const roomData = guildData.roomsByVoiceChannelID.get(newState.channel.id);
 			if (roomData) {
 				roomData.voiceMembers = newState.channel.members.map((v, k) => v).sort();
-				await this.data.saveAsync();
+				await this.data.save();
 			}
 		}
 		// left voice
@@ -187,14 +187,14 @@ export class DiscordRoomsModule {
 						const newOwner = roomData.voiceMembers[0];
 						await this.changeRoomOwner(roomData, newOwner);
 						await roomData.voiceChannel.send({embeds: [new Discord.EmbedBuilder().setColor("Yellow").setDescription(`Права владельца канала были переданы <@${newOwner.id}>, так как предыдущий владелец <@${oldOwner.id}> покинул(а) канал`)]});
-						await this.data.saveAsync();
+						await this.data.save();
 					}
 				}
 
 				if (roomData.voiceMembers.length < 1) {
 					guildData.roomsByVoiceChannelID.delete(oldState.channel.id);
 					await oldState.channel.delete(`Последний участник ${oldState.member!.nickname} (${oldState.member!.id}) покинул комнату`);
-					await this.data.saveAsync();
+					await this.data.save();
 				}
 			}
 		}
@@ -213,7 +213,7 @@ export class DiscordRoomsModule {
 		}});
 		const roomData: Room = {voiceChannel, owner: member, voiceMembers: []};
 		guildData.roomsByVoiceChannelID.set(voiceChannel.id, roomData);
-		await this.data.saveAsync();
+		await this.data.save();
 		return roomData;
 	}
 
@@ -222,7 +222,7 @@ export class DiscordRoomsModule {
 			await roomData.voiceChannel.permissionOverwrites.delete(roomData.owner.id);
 		await roomData.voiceChannel.permissionOverwrites.create(member.id, this.permissionsOwner);
 		roomData.owner = member;
-		await this.data.saveAsync();
+		await this.data.save();
 		return roomData;
 	}
 }

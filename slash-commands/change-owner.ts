@@ -46,7 +46,7 @@ export default () => {
 			await Module.changeRoomOwner(roomData, member);
 
 			guildData.enabled = true;
-			await Module.data.saveAsync();
+			await Module.data.save();
 
 			await interaction.editReply({embeds: [new Discord.EmbedBuilder()
 				.setTitle(`:white_check_mark: Успешно!`)

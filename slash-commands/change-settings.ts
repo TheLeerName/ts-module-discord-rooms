@@ -29,7 +29,7 @@ export default () => {
 
 			const guildData = Module.data.getGuild(interaction.guild.id);
 			guildData.roomVoiceChannelNameTemplate = roomNameTemplate;
-			await Module.data.saveAsync();
+			await Module.data.save();
 
 			await interaction.editReply({embeds: [new Discord.EmbedBuilder()
 				.setTitle(`:white_check_mark: Успешно!`)

@@ -46,7 +46,7 @@ export default () => {
 			args.createRoomChannel = `${guildData.createRoomChannel} (${guildData.createRoomChannel.id})`;
 
 			guildData.enabled = true;
-			await Module.data.saveAsync();
+			await Module.data.save();
 
 			await interaction.editReply({embeds: [new Discord.EmbedBuilder()
 				.setTitle(`:white_check_mark: Успешно!`)
