@@ -1,6 +1,6 @@
 import Core from "../../../index.js";
 import Module from "../index.js";
-import { SlashCommand } from "../../discord/index.js";
+import DiscordModule, { SlashCommand } from "../../discord/index.js";
 
 import * as Discord from "discord.js";
 
@@ -17,8 +17,8 @@ export default () => {
 		await interaction.deferReply();
 
 		const args: any = {
-			guild: `${interaction.guild.name} (${interaction.guild.id})`,
-			user: `${interaction.user.username} (${interaction.user.id})`
+			guild: DiscordModule.getGuildNameAndID(interaction.guild),
+			member: DiscordModule.getGuildMemberNameAndID(interaction.member),
 		};
 		try {
 			const categoryName = interaction.options.getString("category-name", true);
@@ -26,34 +26,41 @@ export default () => {
 			const createRoomName = interaction.options.getString("create-room-name", true);
 			args.createRoomName = createRoomName;
 
-			const guildData = Module.data.getGuild(interaction.guild.id);
-
-			if (guildData.enabled)
+			const state = Module.guilds.createAndGet(interaction.guild);
+			if (state.enabled)
 				throw new Error("Канал-категория уже был создан!");
 
-			guildData.guild = interaction.guild;
-			guildData.categoryChannel = await guildData.guild.channels.create({
-				type: Discord.ChannelType.GuildCategory,
-				name: categoryName
-			});
-			args.categoryChannel = `${guildData.categoryChannel} (${guildData.categoryChannel.id})`;
+			state.guild = interaction.guild;
 
-			guildData.createRoomChannel = await guildData.guild.channels.create({
+			state.categoryChannel = await state.guild.channels.create({
+				type: Discord.ChannelType.GuildCategory,
+				name: categoryName,
+			});
+			state.categoryChannelID = state.categoryChannel.id;
+			args.categoryChannel = DiscordModule.getChannelNameAndID(state.categoryChannel);
+
+			state.createRoomChannel = await state.guild.channels.create({
 				type: Discord.ChannelType.GuildVoice,
 				name: createRoomName,
-				parent: guildData.categoryChannel
+				parent: state.categoryChannel,
+				userLimit: 1,
 			});
-			args.createRoomChannel = `${guildData.createRoomChannel} (${guildData.createRoomChannel.id})`;
+			state.createRoomChannelID = state.createRoomChannel.id;
+			args.createRoomChannel = DiscordModule.getChannelNameAndID(state.createRoomChannel);
 
-			guildData.enabled = true;
-			await Module.data.save();
+			state.enabled = true;
+			await Module.data.save(true);
 
 			await interaction.editReply({embeds: [new Discord.EmbedBuilder()
 				.setTitle(`:white_check_mark: Успешно!`)
 				.setFields(
 					{
+						name: "Канал-категория для создания комнаты",
+						value: `<#${state.createRoomChannel.id}>`,
+					},
+					{
 						name: "Голосовой канал для создания комнаты",
-						value: `<#${guildData.createRoomChannel.id}>`
+						value: `<#${state.createRoomChannel.id}>`,
 					}
 				)
 				.setColor("#77b255")

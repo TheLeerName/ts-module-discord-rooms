@@ -1,6 +1,6 @@
 import Core from "../../../index.js";
-import { SlashCommand } from "../../discord/index.js";
 import Module from "../index.js";
+import DiscordModule, { SlashCommand } from "../../discord/index.js";
 
 import * as Discord from "discord.js";
 
@@ -19,45 +19,42 @@ export default () => {
 		await interaction.deferReply();
 
 		const args: any = {
-			guild: `${interaction.guild.name} (${interaction.guild.id})`,
-			user: `${interaction.user.username} (${interaction.user.id})`
+			guild: DiscordModule.getGuildNameAndID(interaction.guild),
+			member: DiscordModule.getGuildMemberNameAndID(interaction.member),
 		};
 		try {
 			const newOwner = interaction.options.getUser("new-owner", true);
 			args.newOwner = newOwner;
 
-			const guildData = Module.data.getGuild(interaction.guild.id);
-
-			if (!guildData.enabled)
-				throw new Error("Канал-категория ещё не была создана!");
-
-			if (!interaction.member.voice)
+			if (interaction.member.voice == null)
 				throw new Error("Вы не находитесь в голосовом канале!");
 
-			const roomData = guildData.roomsByVoiceChannelID.get(interaction.member.voice.id);
-			if (!roomData)
+			const state = Module.guilds.createAndGet(interaction.guild);
+			if (!state.enabled)
+				throw new Error("Канал-категория ещё не была создана!");
+
+			const room = state.rooms.get(interaction.member.voice.id);
+			if (room == null)
 				throw new Error("Голосовой канал в котором вы находитесь не является комнатой!");
 
-			if (roomData.owner.id === interaction.user.id)
+			if (room.ownerID === interaction.user.id)
 				throw new Error("Вы не владелец комнаты!");
 
-			const member = await interaction.guild.members.fetch(newOwner);
-			const oldOwner = roomData.owner;
-			await Module.changeRoomOwner(roomData, member);
+			const oldOwnerID = room.ownerID;
+			await room.changeOwner(newOwner.id);
 
-			guildData.enabled = true;
-			await Module.data.save();
+			await Module.data.save(true);
 
 			await interaction.editReply({embeds: [new Discord.EmbedBuilder()
 				.setTitle(`:white_check_mark: Успешно!`)
 				.setFields(
 					{
 						name: "Предыдущий владелец комнаты",
-						value: `<@${oldOwner.id}>`
+						value: `<@${oldOwnerID}>`,
 					},
 					{
 						name: "Новый владелец комнаты",
-						value: `<@${roomData.owner.id}>`
+						value: `<@${room.ownerID}>`,
 					}
 				)
 				.setColor("#77b255")
