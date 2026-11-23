@@ -4,12 +4,12 @@ Adds discord private rooms as voice channels, which can be created by joining sp
 ## Features
 1. Adds slash commands:
 
-|Name|Description|
+|Name|Type|Description|
 |---|---|
-|`/rooms-create-category`|Creates new category channel with voice channel in it, when joining to this channel, new room will be created|
-|`/rooms-change-guild-settings`|Changes some settings for discord server:<br>- Name template of each created room, placeholders are: %nickname%, %username%|
-|`/rooms-get-guild-settings`|Sends some settings for discord server
-|`/rooms-change-owner`|Changes owner of room, where you right now (if you currently owner)|
+|`/rooms-create-category`|Guild-only|Creates new category channel with voice channel in it, when joining to this channel, new room will be created|
+|`/rooms-change-guild-settings`|Guild-only|Changes some settings for discord server:<br>- Name template of each created room, placeholders are: %nickname%, %username%|
+|`/rooms-get-guild-settings`|Guild-only|Sends some settings for discord server
+|`/rooms-change-owner`|Guild-only|Changes owner of room, where you right now (if you currently owner)|
 
 1. If command `/rooms-change-guild-settings` is banned on server by slash command allowing/banning system, module will stop functioning on this server
 
