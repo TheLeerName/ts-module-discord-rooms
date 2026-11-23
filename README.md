@@ -5,7 +5,7 @@ Adds discord private rooms as voice channels, which can be created by joining sp
 1. Adds slash commands:
 
 |Name|Type|Description|
-|---|---|
+|---|---|---|
 |`/rooms-create-category`|Guild-only|Creates new category channel with voice channel in it, when joining to this channel, new room will be created|
 |`/rooms-change-guild-settings`|Guild-only|Changes some settings for discord server:<br>- Name template of each created room, placeholders are: %nickname%, %username%|
 |`/rooms-get-guild-settings`|Guild-only|Sends some settings for discord server
