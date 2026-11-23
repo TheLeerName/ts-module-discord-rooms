@@ -1,11 +1,6 @@
-import Module, {
-	RoomState,
-	type RoomStateSave,
-	type RoomStateAvailable,
-	type GuildState,
-	type GuildStateAvailable,
-} from "../index.js";
-import DiscordModule from "../../discord/index.js";
+import Module from "../index.js";
+import { type GuildState, type GuildStateAvailable } from "./states/guild.js";
+import { RoomState, type RoomStateSave, type RoomStateAvailable } from "./states/room.js";
 
 import {
 	EmbedBuilder,
@@ -45,59 +40,20 @@ export class RoomStateManager extends Map<string, RoomState> {
 		this.set(room.voiceChannel.id, room);
 		Module.data.needsSave = true;
 		Module.log.info("Created room for owner", {args: {
-			guild: DiscordModule.getGuildNameAndID(this.state.guild!),
-			user: DiscordModule.getUserNameAndID(owner.user),
+			guild: Module.discord.getGuildNameAndID(this.state.guild!),
+			user: Module.discord.getUserNameAndID(owner.user),
 		}});
 		return room;
 	}
-
-	async onGuildAvailable(state: GuildStateAvailable) {
-		for (const room of this.values<RoomStateAvailable>()) {
-			await room.setVoiceChannelFromFetch();
-			this.checkRoomState(room);
-		}
-	}
-	onVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
-		if (newState.channel != null && newState.channel.id === this.state.createRoomChannelID) {
-			this.createByMember(newState.member!).then(room => {
-				newState.setChannel(room.voiceChannel!, `Создание комнаты`);
-				Module.data.save(true);
-			});
-			return;
-		}
-
-		// joined to voice
-		if (oldState.channel == null && newState.channel != null) {
-			const room = this.get<RoomStateAvailable>(newState.channel.id);
-			if (room == null) return;
-
-			// saving voiceMembers
-			Module.data.save(true);
-		}
-		// left voice
-		else if (oldState.channel != null && newState.channel == null) {
-			const room = this.get<RoomStateAvailable>(oldState.channel.id);
-			if (room == null) return;
-
-			this.checkRoomState(room, oldState.member!);
-		}
-	}
-
-	protected checkRoomState(room: RoomStateAvailable, member?: GuildMember) {
-		if (room.voiceChannel.members.size <= 0) {
-			this.delete(room.voiceChannelID);
-			room.voiceChannel.delete(member != null ? `Последний участник ${DiscordModule.getGuildMemberNameAndID(member)} покинул комнату` : `Участников канала не осталось`);
-			Module.data.save(true);
-		}
-		else if (!room.voiceChannel.members.has(room.ownerID)) {
-			const oldOwnerID = room.ownerID;
-			const newOwnerID = room.voiceChannel.members.random()!.id;
-			room.ownerID = newOwnerID;
-			Promise.all([
-				room.changeOwner(newOwnerID),
-				room.voiceChannel.send({embeds: [new EmbedBuilder().setColor("Yellow").setDescription(`Права владельца канала были переданы <@${newOwnerID}>, так как предыдущий владелец <@${oldOwnerID}> покинул(а) канал`)]}),
-			]).then(() => Module.data.save(true));
-		}
+	/** **NOTE:** this method will set {@link Module.data.needsSave} to `true` */
+	unset(room: RoomState, reason?: string) {
+		Module.log.warn(`Guild was disabled`, {causedBy: reason ?? `"rooms.get('${room.voiceChannelID}')" was unset`, args: {
+			guild: this.state.getGuildName(),
+			roomOwner: room.getOwnerName(),
+			roomVoiceChannelName: room.getVoiceChannelName(),
+		}});
+		this.delete(room.voiceChannelID);
+		Module.data.needsSave = true;
 	}
 
 	fromJSON(array: RoomStateManagerSave) {
@@ -112,4 +68,49 @@ export class RoomStateManager extends Map<string, RoomState> {
 	toJSON(): RoomStateManagerSave {
 		return this.size > 0 ? Array.from(this.values()).map(v => v.toJSON()) : undefined;
 	}
+	protected checkRoomState(room: RoomStateAvailable, member?: GuildMember) {
+		if (room.voiceChannel.members.size <= 0) {
+			this.delete(room.voiceChannelID);
+			room.voiceChannel.delete(member != null ? `Последний участник ${Module.discord.getGuildMemberNameAndID(member)} покинул комнату` : `Участников канала не осталось`);
+			Module.data.save(true);
+		}
+		else if (!room.voiceChannel.members.has(room.ownerID)) {
+			const oldOwnerID = room.ownerID;
+			const newOwnerID = room.voiceChannel.members.random()!.id;
+			room.ownerID = newOwnerID;
+			Promise.all([
+				room.changeOwner(newOwnerID),
+				room.voiceChannel.send({embeds: [new EmbedBuilder().setColor("Yellow").setDescription(`Права владельца канала были переданы <@${newOwnerID}>, так как предыдущий владелец <@${oldOwnerID}> покинул(а) канал`)]}),
+			]).then(() => Module.data.save(true));
+		}
+	}
+
+	async onGuildAvailable(state: GuildStateAvailable) {
+		for (const room of this.values<RoomStateAvailable>()) {
+			await room.setVoiceChannelFromFetch();
+			this.checkRoomState(room);
+		}
+	}
+	onVoiceStateUpdate(state: VoiceState & { channelId: string; member: GuildMember; }, isJoining: boolean) {
+		if (isJoining) {
+			const room = this.get<RoomStateAvailable>(state.channelId);
+			if (room == null) return;
+
+			// saving voiceMembers
+			Module.data.save(true);
+		}
+		// left voice
+		else {
+			const room = this.get<RoomStateAvailable>(state.channelId);
+			if (room == null) return;
+
+			this.checkRoomState(room, state.member);
+		}
+	}
 }
+
+export {
+	RoomState,
+	type RoomStateAvailable,
+	type RoomStateSave,
+} from "./states/room.js";

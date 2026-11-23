@@ -1,10 +1,9 @@
-import Module, {
+import Module from "../index.js";
+import {
 	GuildState,
 	type GuildStateSave,
 	type GuildStateAvailable,
-	slashCommandChangeGuildSettingsName,
-} from "../index.js";
-import DiscordModule from "../../discord/index.js";
+} from "./states/guild.js";
 
 import type {
 	Guild,
@@ -36,7 +35,7 @@ export class GuildStateManager extends Map<string, GuildState> {
 		return state;
 	}
 	registerDiscordCallbacks() {
-		DiscordModule.client
+		Module.discord.client
 			.on("guildCreate", g => this.onGuildCreate(g))
 			.on("guildUpdate", (oldGuild, newGuild) => this.onGuildUpdate(oldGuild, newGuild))
 			.on("guildDelete", g => this.onGuildDelete(g))
@@ -61,6 +60,8 @@ export class GuildStateManager extends Map<string, GuildState> {
 	protected onGuildCreate(guild: Guild) {
 		this._availableGuildsCount++;
 
+		if (!Module.isAllowedInGuild(guild)) return;
+
 		let state = this.get(guild.id);
 		if (state != null) {
 			state.guild = guild;
@@ -76,7 +77,7 @@ export class GuildStateManager extends Map<string, GuildState> {
 		Module.data.save();
 	}
 	protected onGuildUpdate(oldGuild: Guild, newGuild: Guild) {
-		if (!DiscordModule.slashCommands.isCommandInGuildAllowed(slashCommandChangeGuildSettingsName, newGuild.id)) return;
+		if (!Module.isAllowedInGuild(newGuild)) return;
 
 		const state = this.get(newGuild.id);
 		if (state == null || !state.enabled) return;
@@ -86,6 +87,8 @@ export class GuildStateManager extends Map<string, GuildState> {
 	protected onGuildDelete(guild: Guild) {
 		this._availableGuildsCount--;
 
+		if (!Module.isAllowedInGuild(guild)) return;
+
 		const state = this.get(guild.id);
 		if (state == null) return;
 
@@ -94,8 +97,7 @@ export class GuildStateManager extends Map<string, GuildState> {
 	protected async onGuildAvailable(guild: Guild) {
 		this._availableGuildsCount++;
 
-		// TODO: put this to index.js like isAllowedInGuild
-		if (!DiscordModule.slashCommands.isCommandInGuildAllowed(slashCommandChangeGuildSettingsName, guild.id)) return;
+		if (!Module.isAllowedInGuild(guild)) return;
 
 		const state = this.get(guild.id);
 		if (state == null || !state.enabled) return;
@@ -105,13 +107,13 @@ export class GuildStateManager extends Map<string, GuildState> {
 		await state.setCategoryChannelFromFetch();
 		await state.setCreateRoomChannelFromFetch();
 		await state.rooms.onGuildAvailable(state as GuildStateAvailable);
-		if (this._availableGuildsCount >= DiscordModule.client.guilds.cache.size)
+		if (this._availableGuildsCount >= Module.discord.client.guilds.cache.size)
 			Module.data.save(true);
 	}
 	protected onGuildUnavailable(guild: Guild) {
 		this._availableGuildsCount--;
 
-		if (!DiscordModule.slashCommands.isCommandInGuildAllowed(slashCommandChangeGuildSettingsName, guild.id)) return;
+		if (!Module.isAllowedInGuild(guild)) return;
 
 		const state = this.get(guild.id);
 		if (state == null) return;
@@ -120,47 +122,38 @@ export class GuildStateManager extends Map<string, GuildState> {
 	}
 	protected onChannelUpdate(oldChannel: DMChannel | NonThreadGuildBasedChannel, newChannel: DMChannel | NonThreadGuildBasedChannel) {
 		if (newChannel.isDMBased()) return;
-		if (!DiscordModule.slashCommands.isCommandInGuildAllowed(slashCommandChangeGuildSettingsName, newChannel.guild.id)) return;
+		if (!Module.isAllowedInGuild(newChannel.guild)) return;
 
 		const state = this.get(newChannel.guild.id);
 		if (state == null || !state.enabled) return;
 
 		if (state.categoryChannelID === newChannel.id)
-			state.categoryChannel = newChannel as CategoryChannel;
+			state.categoryChannel = newChannel as typeof state.categoryChannel;
 		if (state.createRoomChannelID === newChannel.id)
-			state.createRoomChannel = newChannel as VoiceBasedChannel;
+			state.createRoomChannel = newChannel as typeof state.createRoomChannel;
 
 		for (const room of state.rooms.values()) {
 			if (room.voiceChannelID === newChannel.id) {
-				room.voiceChannel = newChannel as VoiceBasedChannel;
+				room.voiceChannel = newChannel as typeof room.voiceChannel;
 				break;
 			}
 		}
 	}
 	protected onChannelDelete(channel: DMChannel | NonThreadGuildBasedChannel) {
 		if (channel.isDMBased()) return;
-		if (!DiscordModule.slashCommands.isCommandInGuildAllowed(slashCommandChangeGuildSettingsName, channel.guild.id)) return;
+		if (!Module.isAllowedInGuild(channel.guild)) return;
 
 		const state = this.get(channel.guild.id);
 		if (state == null || !state.enabled) return;
 
-		if (state.categoryChannelID === channel.id) {
-			delete state.categoryChannel;
-			delete state.categoryChannelID;
-			state.enabled = false;
-			Module.data.needsSave = true;
-		}
-		else if (state.createRoomChannelID === channel.id) {
-			delete state.createRoomChannel;
-			delete state.createRoomChannelID;
-			state.enabled = false;
-			Module.data.needsSave = true;
-		}
+		if (state.categoryChannelID === channel.id)
+			state.unsetCategoryChannel("Channel was deleted");
+		else if (state.createRoomChannelID === channel.id)
+			state.unsetCreateRoomChannel("Channel was deleted");
 		else {
 			for (const room of state.rooms.values()) {
 				if (room.voiceChannelID === channel.id) {
-					state.rooms.delete(room.voiceChannelID);
-					Module.data.needsSave = true;
+					state.rooms.unset(room, "Channel was deleted");
 					break;
 				}
 			}
@@ -169,11 +162,41 @@ export class GuildStateManager extends Map<string, GuildState> {
 		Module.data.save();
 	}
 	protected onVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
-		if (!DiscordModule.slashCommands.isCommandInGuildAllowed(slashCommandChangeGuildSettingsName, newState.guild.id)) return;
+		if (!Module.isAllowedInGuild(newState.guild)) return;
 
-		const state = this.get(newState.guild.id);
-		if (state == null || !state.isAvailable()) return;
+		if (oldState.channelId === newState.channelId) return;
 
-		state.rooms.onVoiceStateUpdate(oldState, newState);
+		// on join
+		if (newState.channelId != null) {
+			const state = this.get(newState.guild.id);
+			if (state == null || !state.isAvailable()) return;
+
+			if (newState.channelId === state.createRoomChannelID) {
+				if (oldState.channelId === state.createRoomChannelID) return;
+
+				state.rooms.createByMember(newState.member!).then(room => {
+					newState.setChannel(room.voiceChannel!, `Создание комнаты`);
+					Module.data.save(true);
+				});
+				return;
+			}
+
+			state.rooms.onVoiceStateUpdate(newState as Parameters<typeof state.rooms.onVoiceStateUpdate>[0], true);
+		}
+		// on left
+		if (oldState.channelId != null) {
+			const state = this.get(newState.guild.id);
+			if (state == null || !state.isAvailable()) return;
+
+			if (oldState.channelId === state.createRoomChannelID) return;
+
+			state.rooms.onVoiceStateUpdate(newState as Parameters<typeof state.rooms.onVoiceStateUpdate>[0], false);
+		}
 	}
 }
+
+export {
+	GuildState,
+	type GuildStateAvailable,
+	type GuildStateSave,
+} from "./states/guild.js";

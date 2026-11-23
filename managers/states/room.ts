@@ -1,10 +1,7 @@
-import Module, {
-	type RoomStateManager,
-} from "../index.js";
+import Module from "../../index.js";
+import type { RoomStateManager } from "../room.js";
 
-import type {
-	VoiceBasedChannel,
-} from "discord.js";
+import type { VoiceBasedChannel } from "discord.js";
 
 export class RoomStateSave {
 	voiceChannelID: string;
@@ -25,6 +22,13 @@ export class RoomState {
 	isAvailable(): this is RoomStateAvailable {
 		return this.manager.state.isAvailable();
 	}
+	getVoiceChannelName() {
+		return this.voiceChannel != null ? Module.discord.getChannelNameAndID(this.voiceChannel) : this.voiceChannelID;
+	}
+	getOwnerName() {
+		return this.manager.state.guild!.members.cache.get(this.ownerID) ?? this.ownerID;
+	}
+
 	/** **NOTE:** this method will set {@link Module.data.needsSave} to `true` */
 	async changeOwner(newOwnerID: string) {
 		if (this.voiceChannel!.permissionOverwrites.cache.has(this.ownerID))
@@ -34,17 +38,14 @@ export class RoomState {
 		Module.data.needsSave = true;
 		return this;
 	}
-
 	/** **NOTE:** this method will set {@link Module.data.needsSave} to `true` */
 	async setVoiceChannelFromFetch() {
-		this.voiceChannel = (await this.manager.state.fetchChannelWithNotFoundHandling(this.voiceChannelID) ?? undefined) as typeof this.voiceChannel;
-		if (this.voiceChannel == null) {
-			this.manager.delete(this.voiceChannelID);
-			Module.data.needsSave = true;
-		}
+		this.voiceChannel = (await Module.discord.fetchChannelWithNotFoundHandling(this.manager.state.guild!, this.voiceChannelID) ?? undefined) as typeof this.voiceChannel;
+		if (this.voiceChannel == null)
+			this.manager.unset(this);
 	}
 
-	async fromJSON(json: RoomStateSave) {
+	fromJSON(json: RoomStateSave) {
 		this.voiceChannelID = json.voiceChannelID;
 		this.ownerID = json.ownerID;
 	}
