@@ -70,8 +70,9 @@ export class RoomStateManager extends Map<string, RoomState> {
 	}
 	protected checkRoomState(room: RoomStateAvailable, member?: GuildMember) {
 		if (room.voiceChannel.members.size <= 0) {
-			this.delete(room.voiceChannelID);
-			room.voiceChannel.delete(member != null ? `Последний участник ${Module.discord.getGuildMemberNameAndID(member)} покинул комнату` : `Участников канала не осталось`);
+			const memberNameAndID = member != null ? Module.discord.getGuildMemberNameAndID(member) : undefined;
+			this.unset(room, memberNameAndID != null ? `Last member ${memberNameAndID} leaved room` : `No members left`);
+			room.voiceChannel.delete(memberNameAndID != null ? `Последний участник ${memberNameAndID} покинул комнату` : `Участников канала не осталось`);
 			Module.data.save(true);
 		}
 		else if (!room.voiceChannel.members.has(room.ownerID)) {
