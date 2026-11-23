@@ -4,12 +4,11 @@ import { EmbedBuilder } from "discord.js";
 // TODO: make another slash-command which will be used by administrators and will change room owner even if administrator isnt current room owner
 export default () => Module.discord.slashCommands.make("rooms-change-owner", c => {c
 .setVersion(1)
+.setType("guild")
 .setCooldown(5000)
 .setDescription(`Changes owner of room, where you right now (if you currently owner)`)
 .setDescriptionLocalization("ru", `Передаёт права владельца в комнате, которой вы находитесь (если вы являетесь владельцем)`)
 .setChatInput(async(interaction) => {
-	if (!interaction.inCachedGuild()) return;
-
 	const start = Date.now();
 	await interaction.deferReply();
 

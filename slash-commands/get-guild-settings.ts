@@ -3,11 +3,10 @@ import { EmbedBuilder } from "discord.js";
 
 export default () => Module.discord.slashCommands.make("rooms-get-guild-settings", c => {c
 .setVersion(1)
+.setType("guild")
 .setDescription(`Sends settings of this server`)
 .setDescriptionLocalization("ru", `Отправляет настройки этого сервера`)
 .setChatInput(async(interaction) => {
-	if (!interaction.inCachedGuild()) return;
-
 	const start = Date.now();
 	await interaction.deferReply();
 

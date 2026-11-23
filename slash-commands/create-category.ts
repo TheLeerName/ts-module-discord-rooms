@@ -3,11 +3,10 @@ import { EmbedBuilder, ChannelType } from "discord.js";
 
 export default () => Module.discord.slashCommands.make("rooms-create-category", c => {c
 .setVersion(1)
+.setType("guild")
 .setDescription(`Creates category for private rooms`)
 .setDescriptionLocalization("ru", `Создаёт канал-категорию для приватных комнат`)
 .setChatInput(async(interaction) => {
-	if (!interaction.inCachedGuild()) return;
-
 	const start = Date.now();
 	await interaction.deferReply();
 

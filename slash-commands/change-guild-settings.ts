@@ -4,11 +4,10 @@ import { EmbedBuilder, ChannelType } from "discord.js";
 /** That command name used for slash command allowing/banning system, if this will be banned on server, module will stop functioning on this server */
 export default () => Module.discord.slashCommands.make("rooms-change-guild-settings", c => {c
 .setVersion(1)
+.setType("guild")
 .setDescription(`Changes some settings for this server`)
 .setDescriptionLocalization("ru", `Изменяет настройки для этого сервера`)
 .setChatInput(async(interaction) => {
-	if (!interaction.inCachedGuild()) return;
-
 	const start = Date.now();
 	await interaction.deferReply();
 
